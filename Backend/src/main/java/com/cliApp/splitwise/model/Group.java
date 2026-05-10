@@ -30,4 +30,7 @@ public class Group extends BaseModel{
     
     @OneToMany(mappedBy = "group", fetch = FetchType.LAZY)
     private List<Expense> expenses;
+
+    @Transient
+    private boolean resolved;
 }

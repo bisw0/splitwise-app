@@ -367,6 +367,8 @@ p {
 .mb-8 { margin-bottom: var(--spacing-xl); }
 .text-center { text-align: center; }
 .w-full { width: 100%; }
+.relative { position: relative; }
+.overflow-hidden { overflow: hidden; }
 
 /* Animations */
 @keyframes fadeIn {

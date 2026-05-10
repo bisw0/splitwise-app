@@ -1,9 +1,11 @@
 package com.cliApp.splitwise.service;
 
+import com.cliApp.splitwise.dto.response.TransactionDTO;
 import com.cliApp.splitwise.model.Group;
 import com.cliApp.splitwise.model.User;
 import com.cliApp.splitwise.repository.GroupRepository;
 import com.cliApp.splitwise.repository.UserRepository;
+import com.cliApp.splitwise.strategy.SettleUpStrategy;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,7 @@ import java.util.List;
 public class GroupService {
     private GroupRepository groupRepository;
     private UserRepository userRepository;
+    private SettleUpStrategy settleUpStrategy;
 
     public Group createGroup(String groupName, List<Integer> userIds, int creatorId) {
         Group group = new Group();
@@ -58,10 +61,31 @@ public class GroupService {
     }
 
     public List<Group> getAllGroups() {
-        return groupRepository.findAll();
+        List<Group> groups = groupRepository.findAll();
+        groups.forEach(this::calculateResolvedStatus);
+        return groups;
+    }
+
+    public List<Group> getGroupsByUserId(int userId) {
+        List<Group> groups = groupRepository.findAllByUsersId(userId);
+        groups.forEach(this::calculateResolvedStatus);
+        return groups;
+    }
+
+    private void calculateResolvedStatus(Group group) {
+        if (group.getExpenses() == null || group.getExpenses().isEmpty()) {
+            group.setResolved(true);
+            return;
+        }
+        
+        // If there are transactions to be made, it's not resolved
+        List<TransactionDTO> transactions = settleUpStrategy.settleTheExpense(group.getExpenses());
+        group.setResolved(transactions.isEmpty());
     }
 
     public Group getGroupById(int id) {
-        return groupRepository.findById(id).orElseThrow(() -> new RuntimeException("Group not found"));
+        Group group = groupRepository.findById(id).orElseThrow(() -> new RuntimeException("Group not found"));
+        calculateResolvedStatus(group);
+        return group;
     }
 }

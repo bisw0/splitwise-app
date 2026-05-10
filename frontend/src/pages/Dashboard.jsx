@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users as UsersIcon, Plus, Search } from 'lucide-react';
-import { getGroups, createGroup } from '../api/groupService';
+import { getGroupsByUserId, createGroup } from '../api/groupService';
 import { getUsers } from '../api/userService';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,7 +15,7 @@ const Dashboard = () => {
 
   const fetchGroups = async () => {
     try {
-      const res = await getGroups();
+      const res = await getGroupsByUserId(currentUser.id);
       setGroups(res.data);
     } catch (error) {
       console.error('Error fetching groups', error);
@@ -83,8 +83,13 @@ const Dashboard = () => {
             <div className="grid grid-cols-2 gap-md">
               {groups.map(group => (
                 <Link to={`/groups/${group.id}`} key={group.id} style={{ textDecoration: 'none' }}>
-                  <div className="glass-card glass-hover">
-                    <h3 className="mb-2 text-accent">{group.grouName}</h3>
+                   <div className="glass-card glass-hover relative overflow-hidden">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-accent">{group.groupName}</h3>
+                      <span className={`badge ${group.resolved ? 'badge-success' : 'badge-danger'}`}>
+                        {group.resolved ? 'Resolved' : 'Pending'}
+                      </span>
+                    </div>
                     <div className="flex items-center text-secondary" style={{ fontSize: '0.875rem' }}>
                       <UsersIcon size={16} className="mr-2" style={{ marginRight: '0.5rem' }} />
                       {group.users?.length || 0} members
