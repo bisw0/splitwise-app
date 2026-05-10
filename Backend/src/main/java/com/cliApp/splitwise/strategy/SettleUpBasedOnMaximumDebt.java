@@ -12,65 +12,56 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SettleUpBasedOnMaximumDebt implements SettleUpStrategy{
-    public static class UserTransaction {
-        User user;
-        int amount;
 
-        public UserTransaction(User user, int amount) {
-            this.user = user;
+    public static class UserAmount{
+        private User user;
+        private int amount;
+        public UserAmount(User user, int amount){
+            this.user=user;
             this.amount = amount;
         }
-    }
 
+    }
     @Override
     public List<TransactionDTO> settleTheExpense(List<Expense> expenses) {
-        Map<User, Integer> mapOfUsers = new HashMap<>();
-        for(var expense: expenses) {
-            for(ReceiverOrPayer rOrP : expense.getUserInTransaction()) {
-                if(rOrP.getUserTransactionType() == UserTransactionType.PAYMENT_MAKER) {
-                    mapOfUsers.merge(rOrP.getUser(), rOrP.getAmount(), Integer::sum);
+        Map<User, Integer> userMap = new HashMap<>();
+        for (Expense expense : expenses) {
+            for (ReceiverOrPayer rOPye : expense.getUserInTransaction()) {
+                if (rOPye.getUserTransactionType() == UserTransactionType.PAYMENT_MAKER) {
+                    // Payer gets a positive balance (owed money)
+                    userMap.merge(rOPye.getUser(), rOPye.getAmount(), Integer::sum);
                 } else {
-                    mapOfUsers.merge(rOrP.getUser(), -rOrP.getAmount(), Integer::sum);
+                    // Receiver gets a negative balance (owes money)
+                    userMap.merge(rOPye.getUser(), -rOPye.getAmount(), Integer::sum);
                 }
             }
         }
 
-        PriorityQueue<UserTransaction> receivers = new PriorityQueue<>((a, b) -> b.amount - a.amount);
-        PriorityQueue<UserTransaction> payers = new PriorityQueue<>((a, b) -> b.amount - a.amount);
+        PriorityQueue<UserAmount> receivers = new PriorityQueue<>((a, b) -> b.amount - a.amount);
+        PriorityQueue<UserAmount> senders = new PriorityQueue<>((a, b) -> b.amount - a.amount);
 
-        for (Map.Entry<User, Integer> entry : mapOfUsers.entrySet()) {
+        for (Map.Entry<User, Integer> entry : userMap.entrySet()) {
             if (entry.getValue() > 0) {
-                receivers.add(new UserTransaction(entry.getKey(), entry.getValue()));
+                receivers.add(new UserAmount(entry.getKey(), entry.getValue()));
             } else if (entry.getValue() < 0) {
-                payers.add(new UserTransaction(entry.getKey(), Math.abs(entry.getValue())));
+                senders.add(new UserAmount(entry.getKey(), Math.abs(entry.getValue())));
             }
         }
 
-        List<TransactionDTO> transactions = new ArrayList<>();
+        List<TransactionDTO> transactionDTOS = new ArrayList<>();
+        while (!receivers.isEmpty() && !senders.isEmpty()) {
+            UserAmount r = receivers.poll();
+            UserAmount s = senders.poll();
 
-        while (!receivers.isEmpty() && !payers.isEmpty()) {
-            UserTransaction receiver = receivers.poll();
-            UserTransaction payer = payers.poll();
+            int settledAmount = Math.min(r.amount, s.amount);
+            transactionDTOS.add(new TransactionDTO(s.user.getName(), settledAmount, r.user.getName()));
 
-            int settledAmount = Math.min(receiver.amount, payer.amount);
+            r.amount -= settledAmount;
+            s.amount -= settledAmount;
 
-            TransactionDTO transactionDTO = new TransactionDTO();
-            transactionDTO.setPaidBy(payer.user.getName());
-            transactionDTO.setPaidTo(receiver.user.getName());
-            transactionDTO.setAmmountPaid(settledAmount);
-            transactions.add(transactionDTO);
-
-            receiver.amount -= settledAmount;
-            payer.amount -= settledAmount;
-
-            if (receiver.amount > 0) {
-                receivers.add(receiver);
-            }
-            if (payer.amount > 0) {
-                payers.add(payer);
-            }
+            if (r.amount > 0) receivers.add(r);
+            if (s.amount > 0) senders.add(s);
         }
-
-        return transactions;
+        return transactionDTOS;
     }
 }

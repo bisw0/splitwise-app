@@ -20,6 +20,15 @@ public class UserController {
         return userService.createUser(request.getName(), request.getEmail(), request.getPhoneNo());
     }
 
+    @PostMapping("/login")
+    public User login(@RequestBody UserRequestDTO request) {
+        User user = userService.login(request.getEmail(), request.getName());
+        if (user == null) {
+            throw new RuntimeException("User not found or credentials invalid");
+        }
+        return user;
+    }
+
     @GetMapping
     public List<User> getAllUsers() {
         return userService.getAllUsers();

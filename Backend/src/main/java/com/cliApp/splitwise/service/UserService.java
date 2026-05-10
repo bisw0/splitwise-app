@@ -19,6 +19,21 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User findByEmail(String email) {
+        return userRepository.findAll().stream()
+                .filter(u -> u.getEmail().equalsIgnoreCase(email))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public User login(String email, String name) {
+        User user = findByEmail(email);
+        if (user != null && user.getName().equalsIgnoreCase(name)) {
+            return user;
+        }
+        return null;
+    }
+
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }

@@ -29,4 +29,14 @@ public class GroupController {
     public Group getGroupById(@PathVariable int id) {
         return groupService.getGroupById(id);
     }
+
+    @PostMapping("/{id}/members")
+    public Group addMember(@PathVariable int id, @RequestBody java.util.Map<String, Integer> body) {
+        return groupService.addMemberToGroup(id, body.get("userId"));
+    }
+
+    @PostMapping("/{id}/admins")
+    public Group addAdmin(@PathVariable int id, @RequestBody java.util.Map<String, Integer> body) {
+        return groupService.addAdminToGroup(id, body.get("userId"));
+    }
 }

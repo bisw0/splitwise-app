@@ -11,13 +11,23 @@ import java.util.List;
 @Setter
 @Table(name = "splitwise_groups")
 public class Group extends BaseModel{
-    private String grouName;
+    @Column(name = "group_name")
+    private String groupName;
+    
     @ManyToMany
     private List<User> users;
+    
     @ManyToOne
-    private User groupCreater;
-    @ManyToOne
-    private User groupAdmin;
+    private User groupCreator;
+    
+    @ManyToMany
+    @JoinTable(
+        name = "group_admins",
+        joinColumns = @JoinColumn(name = "group_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> groupAdmins;
+    
     @OneToMany(mappedBy = "group", fetch = FetchType.LAZY)
     private List<Expense> expenses;
 }
